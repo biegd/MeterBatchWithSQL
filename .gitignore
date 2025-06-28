@@ -1,0 +1,50 @@
+# === Visual Studio Dateien ===
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# === Build-Ordner ===
+bin/
+obj/
+out/
+
+# === NuGet ===
+*.nupkg
+packages/
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# === Test-Ergebnisse ===
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.testsettings
+
+# === Logs ===
+*.log
+
+# === Publish-Profile (optional ignorieren) ===
+Properties/PublishProfiles/
+
+# === Sonstige temporäre Dateien ===
+*.dbmdl
+*.bak
+*.orig
+*.tmp
+*.cache
+
+# === OS-spezifische Dateien ===
+.DS_Store
+Thumbs.db
+
+# === Rider / Resharper (nur falls du es benutzt) ===
+.idea/
+*.DotSettings.user
+
+# === Git temporäre Dateien ===
+*.orig
