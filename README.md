@@ -18,7 +18,38 @@ wendet werden.
 
 ![grafik](https://github.com/user-attachments/assets/b306ba2a-e0ae-417e-adf9-de1781ca22f3)
 
-<h3>TestStepResult.cs</h3>
+<h3>Batch/MeterBatch.cs</h3>
+
+```csharp
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using MeterBatchApp.Models;
+
+public class MeterBatch
+{
+    private readonly List<ITestStep> _steps = new();
+
+    public void AddStep(ITestStep step)
+    {
+        _steps.Add(step);
+    }
+
+    public async Task<List<TestStepResult>> RunAsync()
+    {
+        var results = new List<TestStepResult>();
+
+        foreach (var step in _steps)
+        {
+            var result = await step.ExecuteAsync();
+            results.Add(result);
+        }
+
+        return results;
+    }
+}
+```
+
+<h3>Models/TestStepResult.cs</h3>
 
 ```csharp
 namespace MeterBatchApp.Models
@@ -32,11 +63,96 @@ namespace MeterBatchApp.Models
     }
 }
 ```
+<h3>Services/DbService</h3>
+```csharp
+using Dapper;
+using MeterBatchApp.Models;
+using MySqlConnector;
 
-<h3>ITestStep</h3>
+namespace MeterBatchApp.Services
+{
+    public class DbService
+    {
+        private readonly string _connectionString;
+
+        public DbService(string connectionString)
+        {
+            _connectionString = connectionString;
+        }
+
+        public async Task SaveResultsAsync(TestStepResult[] results)
+        {
+            await using var conn = new MySqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            foreach (var result in results)
+            {
+                await conn.ExecuteAsync(
+                    "INSERT INTO test_results (step_name, status, timestamp, info) VALUES (@StepName, @Status, @Timestamp, @AdditionalInfo)",
+                    result
+                );
+            }
+        }
+    }
+}
+```
+
+<h3>Steps/FinalizeTestStep</h3>
+
+```csharp
+using MeterBatchApp.Models;
+
+public class FinalizeTestStep : ITestStep
+{
+    private readonly Func<TestStepResult[], Task> _saveAction;
+    private readonly TestStepResult[] _results;
+
+    public FinalizeTestStep(TestStepResult[] results, Func<TestStepResult[], Task> saveAction)
+    {
+        _results = results;
+        _saveAction = saveAction;
+    }
+
+    public async Task<TestStepResult> ExecuteAsync()
+    {
+        await _saveAction(_results);
+        return new TestStepResult
+        {
+            StepName = "Speichern",
+            Status = "Fertig",
+            AdditionalInfo = "DB-Speicherung erfolgreich"
+        };
+    }
+}
+```
+
+<h3>Steps/InitTestStep</h3>
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using MeterBatchApp.Models;
+
+public class InitTestStep : ITestStep
+{
+    public async Task<TestStepResult> ExecuteAsync()
+    {
+        await Task.Delay(1000);
+        return new TestStepResult
+        {
+            StepName = "Initialisierung",
+            Status = "Fertig",
+            AdditionalInfo = "Init OK"
+        };
+    }
+}
+```
+
+<h3>Steps/ITestStep</h3>
 
 ```charp
 using System.Threading.Tasks;
+using MeterBatchApp.Models;
 
 public interface ITestStep
 {
