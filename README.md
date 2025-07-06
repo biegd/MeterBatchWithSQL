@@ -63,7 +63,9 @@ namespace MeterBatchApp.Models
     }
 }
 ```
-<h3>Services/DbService</h3>
+
+<h3>Services/DbService.cs</h3>
+
 ```csharp
 using Dapper;
 using MeterBatchApp.Models;
@@ -94,10 +96,10 @@ namespace MeterBatchApp.Services
             }
         }
     }
-}
+
 ```
 
-<h3>Steps/FinalizeTestStep</h3>
+<h3>Steps/FinalizeTestStep.cs</h3>
 
 ```csharp
 using MeterBatchApp.Models;
@@ -126,7 +128,7 @@ public class FinalizeTestStep : ITestStep
 }
 ```
 
-<h3>Steps/InitTestStep</h3>
+<h3>Steps/InitTestStep.cs</h3>
 
 ```csharp
 using System;
@@ -148,7 +150,7 @@ public class InitTestStep : ITestStep
 }
 ```
 
-<h3>Steps/ITestStep</h3>
+<h3>Steps/ITestStep.cs</h3>
 
 ```charp
 using System.Threading.Tasks;
@@ -159,4 +161,65 @@ public interface ITestStep
     Task<TestStepResult> ExecuteAsync();
 }
 ```
+
+<h3>Steps/MeasureFlowTestStep.cs</h3>
+
+```csharp
+using MeterBatchApp.Models;
+
+public class MeasureFlowTestStep : ITestStep
+{
+    public async Task<TestStepResult> ExecuteAsync()
+    {
+        await Task.Delay(1000);
+        return new TestStepResult
+        {
+            StepName = "Durchfluss messen",
+            Status = "Fertig",
+            AdditionalInfo = "10 l/min"
+        };
+    }
+}
+```
+
+<h3>Program.cs</h3>
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using MeterBatchApp.Models;
+using MeterBatchApp.Services;
+
+class Program
+{
+    static async Task Main()
+    {
+        var connectionString = "server=127.0.0.1;user=root;password=root;database=meter_batch_db";
+
+        var dbService = new DbService(connectionString);
+        var batch = new MeterBatch();
+
+        var results = new TestStepResult[2];  // Platz für die ersten beiden Schritte
+
+        batch.AddStep(new InitTestStep());
+        batch.AddStep(new MeasureFlowTestStep());
+
+        // Schritte ausführen
+        var stepResults = await batch.RunAsync();
+
+        // Konvertieren zu Array für FinalizeTestStep
+        results = stepResults.ToArray();
+
+        // FinalizeStep einfügen und ausführen
+        var finalizeStep = new FinalizeTestStep(results, async res => await dbService.SaveResultsAsync(res));
+        var finalizeResult = await finalizeStep.ExecuteAsync();
+
+        Console.WriteLine("Alle Schritte abgeschlossen.");
+    }
+}
+
+```
+
+
+
 
